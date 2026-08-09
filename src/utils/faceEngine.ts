@@ -9,13 +9,15 @@ export const LANDMARK_INDEXES = {
 };
 
 /**
- * Analyzes landmarks for a single face to detect full set of emotions:
- * - Cười (Happy / Smiling 😄) -> Triggers "AI RISER VIETNAM" badge!
- * - Buồn (Sad 😢)
- * - Tức giận (Angry 😡)
- * - Ngạc nhiên (Surprised 😲)
- * - Tập trung (Focused 🧐)
- * - Bình thường (Neutral 😐)
+ * Full 8 Universal Facial Micro-Expressions Suite:
+ * 1. Cười (Happy / Smiling 😄) -> Triggers "AI RISER VIETNAM" badge!
+ * 2. Buồn (Sad 😢)
+ * 3. Tức giận (Angry 😡)
+ * 4. Ngạc nhiên (Surprised 😲)
+ * 5. Sợ hãi (Fear 😱)
+ * 6. Khó chịu / Chán ghét (Disgust 🤢)
+ * 7. Tập trung (Focused 🧐)
+ * 8. Bình thường (Neutral 😐)
  */
 export function analyzeSingleLandmarks(landmarks: Point3D[], width: number, height: number, personId: number = 1): DetectedPerson {
   if (!landmarks || landmarks.length < 400) {
@@ -46,27 +48,37 @@ export function analyzeSingleLandmarks(landmarks: Point3D[], width: number, heig
   const mouthCenterY = mouthTop.y;
   const mouthCornerCurve = mouthCornerAvgY - mouthCenterY;
 
-  // Eyebrow and eye landmarks for Angry / Sad classification
+  // Eyebrow and eye landmarks
   const innerEyebrowDist = Math.hypot(landmarks[55].x - landmarks[285].x, landmarks[55].y - landmarks[285].y);
   const leftEyebrowY = landmarks[70]?.y || 0;
   const rightEyebrowY = landmarks[300]?.y || 0;
-  const leftEyeY = landmarks[159]?.y || 0;
-  const rightEyeY = landmarks[386]?.y || 0;
-  const eyebrowEyeDist = ((leftEyeY - leftEyebrowY) + (rightEyeY - rightEyebrowY)) / 2;
+  const leftEyeTopY = landmarks[159]?.y || 0;
+  const leftEyeBottomY = landmarks[145]?.y || 0;
+  const rightEyeTopY = landmarks[386]?.y || 0;
 
-  // Comprehensive Emotion Classification Logic
+  const leftEyeOpenDist = Math.hypot(landmarks[159].x - landmarks[145].x, landmarks[159].y - landmarks[145].y);
+  const eyebrowEyeDist = ((leftEyeTopY - leftEyebrowY) + (rightEyeTopY - rightEyebrowY)) / 2;
+  const noseLipDist = Math.hypot(landmarks[2].x - landmarks[0].x, landmarks[2].y - landmarks[0].y);
+
+  // Full 8 Emotion Decision Engine
   let expression = 'Bình thường (Neutral 😐)';
   let confidence = 88;
 
-  if (mouthRatio > 0.35) {
+  if (mouthRatio > 0.38 && leftEyeOpenDist > 0.02) {
+    expression = 'Sợ hãi (Fear 😱)';
+    confidence = Math.min(98, Math.round(mouthRatio * 230));
+  } else if (mouthRatio > 0.32) {
     expression = 'Ngạc nhiên (Surprised 😲)';
     confidence = Math.min(99, Math.round(mouthRatio * 220));
   } else if (mouthCornerCurve < -0.003 || (mouthWidth > 0.27 && mouthRatio > 0.12)) {
     expression = 'Cười (Happy 😄)';
     confidence = Math.min(99, Math.round((0.35 - mouthCornerCurve) * 260));
-  } else if (eyebrowEyeDist < 0.04 && innerEyebrowDist < 0.12) {
+  } else if (eyebrowEyeDist < 0.038 && innerEyebrowDist < 0.115) {
     expression = 'Tức giận (Angry 😡)';
     confidence = Math.min(98, Math.round((0.15 - innerEyebrowDist) * 550));
+  } else if (noseLipDist < 0.025 && mouthCornerCurve > 0.002) {
+    expression = 'Khó chịu (Disgust 🤢)';
+    confidence = Math.min(95, Math.round((0.04 - noseLipDist) * 800));
   } else if (mouthCornerCurve > 0.006) {
     expression = 'Buồn (Sad 😢)';
     confidence = Math.min(96, Math.round((mouthCornerCurve + 0.01) * 380));
@@ -201,12 +213,14 @@ export function drawMultiCyberHUD(
       const isSmiling = person.expression.includes('Cười') || person.expression.includes('Happy');
 
       // Color coding per emotion:
-      // Happy: Emerald (#10b981), Sad: Blue (#3b82f6), Angry: Red (#ef4444), Surprised: Amber (#f59e0b), Neutral: Cyan (#06b6d4)
+      // Happy: Emerald (#10b981), Sad: Blue (#3b82f6), Angry: Red (#ef4444), Surprised: Amber (#f59e0b), Fear: Purple (#a855f7), Disgust: Teal (#14b8a6), Neutral: Cyan (#06b6d4)
       let color = '#06b6d4';
       if (isSmiling) color = '#10b981';
       else if (person.expression.includes('Sad') || person.expression.includes('Buồn')) color = '#3b82f6';
       else if (person.expression.includes('Angry') || person.expression.includes('Tức giận')) color = '#ef4444';
       else if (person.expression.includes('Surprised') || person.expression.includes('Ngạc nhiên')) color = '#f59e0b';
+      else if (person.expression.includes('Fear') || person.expression.includes('Sợ hãi')) color = '#a855f7';
+      else if (person.expression.includes('Disgust') || person.expression.includes('Khó chịu')) color = '#14b8a6';
 
       // Draw Reticle Corners around Face
       const cornerLength = Math.min(25, boxW * 0.2);

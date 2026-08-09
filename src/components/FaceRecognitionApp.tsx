@@ -162,16 +162,19 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
             const multiDemo = [demoFace1, demoFace2];
             const bio = analyzeMultiLandmarks(multiDemo, canvas.width, canvas.height);
 
-            // Set emotions for demo simulation to demonstrate Cười, Buồn, Tức giận, Ngạc nhiên
+            // Set emotions for demo simulation to demonstrate all 8 universal human emotions
             const emotionCycle = [
               'Cười (Happy 😄)',
               'Tức giận (Angry 😡)',
               'Buồn (Sad 😢)',
               'Ngạc nhiên (Surprised 😲)',
+              'Sợ hãi (Fear 😱)',
+              'Khó chịu (Disgust 🤢)',
+              'Tập trung (Focused 🧐)',
               'Bình thường (Neutral 😐)'
             ];
             const idx1 = Math.floor((angle * 0.8) % emotionCycle.length);
-            const idx2 = Math.floor((angle * 0.5 + 2) % emotionCycle.length);
+            const idx2 = Math.floor((angle * 0.5 + 3) % emotionCycle.length);
 
             if (bio.people[0]) {
               bio.people[0].expression = emotionCycle[idx1];
