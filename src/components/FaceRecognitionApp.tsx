@@ -162,9 +162,25 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
             const multiDemo = [demoFace1, demoFace2];
             const bio = analyzeMultiLandmarks(multiDemo, canvas.width, canvas.height);
 
-            // Set emotions for demo
-            if (bio.people[0]) bio.people[0].expression = 'Vui vẻ (Happy / Smiling)';
-            if (bio.people[1]) bio.people[1].expression = 'Ngạc nhiên (Surprised)';
+            // Set emotions for demo simulation to demonstrate Cười, Buồn, Tức giận, Ngạc nhiên
+            const emotionCycle = [
+              'Cười (Happy 😄)',
+              'Tức giận (Angry 😡)',
+              'Buồn (Sad 😢)',
+              'Ngạc nhiên (Surprised 😲)',
+              'Bình thường (Neutral 😐)'
+            ];
+            const idx1 = Math.floor((angle * 0.8) % emotionCycle.length);
+            const idx2 = Math.floor((angle * 0.5 + 2) % emotionCycle.length);
+
+            if (bio.people[0]) {
+              bio.people[0].expression = emotionCycle[idx1];
+              bio.people[0].confidence = 96;
+            }
+            if (bio.people[1]) {
+              bio.people[1].expression = emotionCycle[idx2];
+              bio.people[1].confidence = 92;
+            }
 
             setBiometrics(bio);
             setStatus((prev) => ({ ...prev, faceDetected: true, faceCount: 2 }));
@@ -348,6 +364,19 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
               </h4>
               <span className="text-xs font-mono text-slate-500">{biometrics.people.length} Active</span>
             </div>
+
+            {/* AI RISER VIETNAM Special Trigger Banner */}
+            {biometrics.people.some((p) => p.expression.includes('Cười') || p.expression.includes('Happy')) && (
+              <div className="p-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-500/50 flex items-center justify-between shadow-lg shadow-emerald-500/20 animate-pulse">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-300 font-bold font-mono text-xs tracking-wider">AI RISER VIETNAM</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-black font-bold font-mono text-[10px]">
+                  VERIFIED SMILE
+                </span>
+              </div>
+            )}
 
             {biometrics.people.length > 0 ? (
               <div className="space-y-3 max-h-64 overflow-y-auto pr-1">

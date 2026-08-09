@@ -9,7 +9,13 @@ export const LANDMARK_INDEXES = {
 };
 
 /**
- * Analyzes landmarks for a single face
+ * Analyzes landmarks for a single face to detect full set of emotions:
+ * - Cười (Happy / Smiling 😄) -> Triggers "AI RISER VIETNAM" badge!
+ * - Buồn (Sad 😢)
+ * - Tức giận (Angry 😡)
+ * - Ngạc nhiên (Surprised 😲)
+ * - Tập trung (Focused 🧐)
+ * - Bình thường (Neutral 😐)
  */
 export function analyzeSingleLandmarks(landmarks: Point3D[], width: number, height: number, personId: number = 1): DetectedPerson {
   if (!landmarks || landmarks.length < 400) {
@@ -35,18 +41,37 @@ export function analyzeSingleLandmarks(landmarks: Point3D[], width: number, heig
   const mouthWidth = Math.hypot(mouthLeft.x - mouthRight.x, mouthLeft.y - mouthRight.y);
   const mouthRatio = mouthHeight / (mouthWidth || 1);
 
-  // Expression classification
-  let expression = 'Bình thường (Neutral)';
+  // Mouth corner curvature relative to lip center
+  const mouthCornerAvgY = (mouthLeft.y + mouthRight.y) / 2;
+  const mouthCenterY = mouthTop.y;
+  const mouthCornerCurve = mouthCornerAvgY - mouthCenterY;
+
+  // Eyebrow and eye landmarks for Angry / Sad classification
+  const innerEyebrowDist = Math.hypot(landmarks[55].x - landmarks[285].x, landmarks[55].y - landmarks[285].y);
+  const leftEyebrowY = landmarks[70]?.y || 0;
+  const rightEyebrowY = landmarks[300]?.y || 0;
+  const leftEyeY = landmarks[159]?.y || 0;
+  const rightEyeY = landmarks[386]?.y || 0;
+  const eyebrowEyeDist = ((leftEyeY - leftEyebrowY) + (rightEyeY - rightEyebrowY)) / 2;
+
+  // Comprehensive Emotion Classification Logic
+  let expression = 'Bình thường (Neutral 😐)';
   let confidence = 88;
 
   if (mouthRatio > 0.35) {
-    expression = 'Ngạc nhiên (Surprised)';
+    expression = 'Ngạc nhiên (Surprised 😲)';
     confidence = Math.min(99, Math.round(mouthRatio * 220));
-  } else if (mouthWidth > 0.28 && mouthRatio > 0.15) {
-    expression = 'Vui vẻ (Happy / Smiling)';
-    confidence = Math.min(98, Math.round(mouthWidth * 300));
+  } else if (mouthCornerCurve < -0.003 || (mouthWidth > 0.27 && mouthRatio > 0.12)) {
+    expression = 'Cười (Happy 😄)';
+    confidence = Math.min(99, Math.round((0.35 - mouthCornerCurve) * 260));
+  } else if (eyebrowEyeDist < 0.04 && innerEyebrowDist < 0.12) {
+    expression = 'Tức giận (Angry 😡)';
+    confidence = Math.min(98, Math.round((0.15 - innerEyebrowDist) * 550));
+  } else if (mouthCornerCurve > 0.006) {
+    expression = 'Buồn (Sad 😢)';
+    confidence = Math.min(96, Math.round((mouthCornerCurve + 0.01) * 380));
   } else if (mouthRatio < 0.08) {
-    expression = 'Tập trung (Focused)';
+    expression = 'Tập trung (Focused 🧐)';
     confidence = 94;
   }
 
@@ -85,7 +110,7 @@ export function analyzeSingleLandmarks(landmarks: Point3D[], width: number, heig
   return {
     id: personId,
     expression,
-    confidence,
+    confidence: Math.max(75, Math.min(99, confidence)),
     pitch,
     yaw,
     roll,
@@ -173,8 +198,15 @@ export function drawMultiCyberHUD(
       const person = biometrics.people[index] || analyzeSingleLandmarks(landmarks, width, height, index + 1);
       const { x: boxX, y: boxY, width: boxW, height: boxH } = person.box;
 
-      // Color scheme based on face index / expression
-      const color = index === 0 ? '#06b6d4' : index === 1 ? '#10b981' : index === 2 ? '#ec4899' : '#8b5cf6';
+      const isSmiling = person.expression.includes('Cười') || person.expression.includes('Happy');
+
+      // Color coding per emotion:
+      // Happy: Emerald (#10b981), Sad: Blue (#3b82f6), Angry: Red (#ef4444), Surprised: Amber (#f59e0b), Neutral: Cyan (#06b6d4)
+      let color = '#06b6d4';
+      if (isSmiling) color = '#10b981';
+      else if (person.expression.includes('Sad') || person.expression.includes('Buồn')) color = '#3b82f6';
+      else if (person.expression.includes('Angry') || person.expression.includes('Tức giận')) color = '#ef4444';
+      else if (person.expression.includes('Surprised') || person.expression.includes('Ngạc nhiên')) color = '#f59e0b';
 
       // Draw Reticle Corners around Face
       const cornerLength = Math.min(25, boxW * 0.2);
@@ -209,6 +241,33 @@ export function drawMultiCyberHUD(
       ctx.lineTo(boxX + boxW, boxY + boxH - cornerLength);
       ctx.stroke();
 
+      // SPECIAL RULE: IF SMILING (CƯỜI), DRAW SPECIAL NEON "AI RISER VIETNAM" BADGE OVER HEAD!
+      if (isSmiling) {
+        const badgeText = "★ AI RISER VIETNAM ★";
+        ctx.font = "bold 13px Geist, sans-serif";
+        const textW = ctx.measureText(badgeText).width;
+        const badgeX = boxX + boxW / 2 - textW / 2 - 12;
+        const badgeY = boxY - 34;
+
+        // Glowing background box
+        ctx.fillStyle = "rgba(16, 185, 129, 0.95)";
+        ctx.strokeStyle = "#34d399";
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(badgeX, badgeY, textW + 24, 24, 12);
+        } else {
+          ctx.rect(badgeX, badgeY, textW + 24, 24);
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        // Badge Text
+        ctx.fillStyle = "#05070f";
+        ctx.fillText(badgeText, badgeX + 12, badgeY + 16);
+      }
+
       // Draw Mesh Points
       if (mode === 'mesh' || mode === 'biometric' || mode === 'normal' || mode === 'faceid') {
         ctx.fillStyle = color;
@@ -230,7 +289,7 @@ export function drawMultiCyberHUD(
 
       ctx.fillStyle = '#ffffff';
       ctx.font = '600 11px Geist, sans-serif';
-      ctx.fillText(`${person.expression.split(' ')[0]} (${person.confidence}%)`, boxX, boxY + boxH + 16);
+      ctx.fillText(`${person.expression} (${person.confidence}%)`, boxX, boxY + boxH + 16);
     });
   }
 }
