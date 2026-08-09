@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Camera, CameraOff, Eye, Cpu, ShieldCheck, Zap, RefreshCw, Lock, Unlock, Sparkles, AlertCircle } from 'lucide-react';
-import { FaceBiometrics, SystemStatus, Point3D } from '../types/face';
-import { analyzeLandmarks, drawCyberHUD } from '../utils/faceEngine';
+import { Camera, CameraOff, Eye, Cpu, ShieldCheck, Zap, RefreshCw, Lock, Unlock, Sparkles, AlertCircle, Users, Smile, User } from 'lucide-react';
+import { FaceBiometrics, SystemStatus, Point3D, DetectedPerson } from '../types/face';
+import { analyzeMultiLandmarks, drawMultiCyberHUD } from '../utils/faceEngine';
 
 interface FaceRecognitionAppProps {
   onUnlockSecretResume: () => void;
@@ -22,11 +22,14 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
     modelLoaded: true,
     fps: 60,
     faceDetected: false,
+    faceCount: 0,
     accessGranted: accessGranted,
     scanningMode: 'biometric',
   });
 
   const [biometrics, setBiometrics] = useState<FaceBiometrics>({
+    faceCount: 0,
+    people: [],
     expression: 'Đang khởi tạo...',
     confidence: 0,
     pitch: 0,
@@ -43,7 +46,7 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  // Initialize MediaPipe FaceMesh or Canvas Animation Loop
+  // Initialize MediaPipe FaceMesh for Multi-Face Tracking
   useEffect(() => {
     let animFrameId: number;
     let cameraInstance: any = null;
@@ -68,8 +71,9 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
             locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
           });
 
+          // Enable Multi-face Detection (Up to 4 faces)
           faceMesh.setOptions({
-            maxNumFaces: 1,
+            maxNumFaces: 4,
             refineLandmarks: true,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5,
@@ -85,15 +89,20 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
               canvas.height = videoRef.current.videoHeight || 480;
 
               if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                const landmarks: Point3D[] = results.multiFaceLandmarks[0];
-                const bio = analyzeLandmarks(landmarks, canvas.width, canvas.height);
+                const multiLandmarks: Point3D[][] = results.multiFaceLandmarks;
+                const bio = analyzeMultiLandmarks(multiLandmarks, canvas.width, canvas.height);
                 setBiometrics(bio);
-                setStatus((prev) => ({ ...prev, faceDetected: true }));
+                setStatus((prev) => ({
+                  ...prev,
+                  faceDetected: true,
+                  faceCount: bio.faceCount,
+                }));
 
-                drawCyberHUD(ctx, landmarks, canvas.width, canvas.height, status.scanningMode, bio);
+                drawMultiCyberHUD(ctx, multiLandmarks, canvas.width, canvas.height, status.scanningMode, bio);
               } else {
-                setStatus((prev) => ({ ...prev, faceDetected: false }));
-                drawCyberHUD(ctx, null, canvas.width, canvas.height, status.scanningMode, biometrics);
+                setStatus((prev) => ({ ...prev, faceDetected: false, faceCount: 0 }));
+                setBiometrics((prev) => ({ ...prev, faceCount: 0, people: [] }));
+                drawMultiCyberHUD(ctx, null, canvas.width, canvas.height, status.scanningMode, biometrics);
               }
             }
           });
@@ -110,12 +119,11 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
 
           cameraInstance.start();
         } else {
-          // Canvas Fallback Renderer Loop
           renderFallbackLoop();
         }
       } catch (err: any) {
         console.warn('Camera access error:', err);
-        setCameraError('Không thể mở Webcam (Camera permission denied). Đang bật chế độ Demo Simulator AI.');
+        setCameraError('Không thể mở Webcam. Đang kích hoạt chế độ Giả lập Multi-Face AI.');
         setStatus((prev) => ({ ...prev, cameraActive: false }));
         renderFallbackLoop();
       }
@@ -124,7 +132,7 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
     const renderFallbackLoop = () => {
       let angle = 0;
       const loop = () => {
-        angle += 0.05;
+        angle += 0.04;
         if (canvasRef.current) {
           const canvas = canvasRef.current;
           const ctx = canvas.getContext('2d');
@@ -132,25 +140,36 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
             canvas.width = 640;
             canvas.height = 480;
 
-            // Generate synthetic demo landmarks
-            const centerX = 0.5 + Math.sin(angle) * 0.05;
-            const centerY = 0.5 + Math.cos(angle * 0.7) * 0.03;
+            // Generate synthetic demo multi-face landmarks (2 faces in demo mode)
+            const face1X = 0.35 + Math.sin(angle) * 0.04;
+            const face1Y = 0.45 + Math.cos(angle * 0.7) * 0.03;
 
-            const demoLandmarks: Point3D[] = Array.from({ length: 468 }, (_, i) => ({
-              x: centerX + Math.cos((i / 468) * Math.PI * 2) * 0.2,
-              y: centerY + Math.sin((i / 468) * Math.PI * 2) * 0.25,
+            const face2X = 0.70 + Math.cos(angle * 0.5) * 0.03;
+            const face2Y = 0.50 + Math.sin(angle * 0.8) * 0.03;
+
+            const demoFace1: Point3D[] = Array.from({ length: 468 }, (_, i) => ({
+              x: face1X + Math.cos((i / 468) * Math.PI * 2) * 0.14,
+              y: face1Y + Math.sin((i / 468) * Math.PI * 2) * 0.18,
               z: 0,
             }));
 
-            const bio = analyzeLandmarks(demoLandmarks, canvas.width, canvas.height);
-            setBiometrics((prev) => ({
-              ...bio,
-              expression: angle % 4 > 2 ? 'Vui vẻ (Happy / Smiling)' : 'Ngạc nhiên (Surprised)',
-              confidence: 96,
+            const demoFace2: Point3D[] = Array.from({ length: 468 }, (_, i) => ({
+              x: face2X + Math.cos((i / 468) * Math.PI * 2) * 0.12,
+              y: face2Y + Math.sin((i / 468) * Math.PI * 2) * 0.16,
+              z: 0,
             }));
-            setStatus((prev) => ({ ...prev, faceDetected: true }));
 
-            drawCyberHUD(ctx, demoLandmarks, canvas.width, canvas.height, status.scanningMode, biometrics);
+            const multiDemo = [demoFace1, demoFace2];
+            const bio = analyzeMultiLandmarks(multiDemo, canvas.width, canvas.height);
+
+            // Set emotions for demo
+            if (bio.people[0]) bio.people[0].expression = 'Vui vẻ (Happy / Smiling)';
+            if (bio.people[1]) bio.people[1].expression = 'Ngạc nhiên (Surprised)';
+
+            setBiometrics(bio);
+            setStatus((prev) => ({ ...prev, faceDetected: true, faceCount: 2 }));
+
+            drawMultiCyberHUD(ctx, multiDemo, canvas.width, canvas.height, status.scanningMode, bio);
           }
         }
         animFrameId = requestAnimationFrame(loop);
@@ -196,13 +215,13 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
       <div className="text-center max-w-3xl mx-auto mb-12">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-400 font-mono text-xs mb-3">
           <Cpu className="w-4 h-4 text-cyan-400" />
-          <span>MINI APP: REAL-TIME VISION AI & BIOMETRIC HUD</span>
+          <span>MULTI-FACE VISION AI & EMOTION DASHBOARD</span>
         </div>
         <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight font-geist">
-          Nhận diện Khuôn mặt & Cảm xúc
+          Đếm Số Mặt & Phân Tích Cảm Xúc
         </h2>
         <p className="mt-4 text-slate-400 text-base">
-          Quét 468 điểm tọa độ khuôn mặt thời gian thực, đo chỉ số sinh trắc học và thực hiện xác thực Face ID để mở khóa tài liệu hồ sơ ẩn.
+          Theo dõi cùng lúc nhiều khuôn mặt (Multi-face tracking), phân tích cảm xúc riêng biệt cho từng người và đo chỉ số sinh trắc học thời gian thực.
         </p>
       </div>
 
@@ -251,11 +270,13 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
             <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-950/80 border border-slate-700/80 text-xs font-mono text-cyan-300 backdrop-blur-md">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>FPS: 60 | MESH_468_ACTIVE</span>
+                <span>FPS: 60 | MULTI_FACE_TRACKING</span>
               </div>
 
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-950/80 border border-slate-700/80 text-xs font-mono text-white backdrop-blur-md">
-                <span>MODE: {status.scanningMode.toUpperCase()}</span>
+              {/* Multi-face Counter Badge */}
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/90 border border-cyan-500/50 text-xs font-mono text-emerald-300 font-bold backdrop-blur-md">
+                <Users className="w-3.5 h-3.5 text-emerald-400" />
+                <span>FACIAL COUNT: {biometrics.faceCount}</span>
               </div>
             </div>
           </div>
@@ -298,55 +319,62 @@ export const FaceRecognitionApp: React.FC<FaceRecognitionAppProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Real-time Biometrics HUD Dashboard */}
+        {/* Right Column: Multi-person Emotion Dashboard */}
         <div className="lg:col-span-4 flex flex-col gap-6">
-          {/* Facial Expression Gauge */}
-          <div className="glass-panel rounded-3xl p-6 border border-cyan-500/30 shadow-xl">
+          {/* Total Faces Counter Dashboard Card */}
+          <div className="glass-panel-glow rounded-3xl p-6 border border-cyan-500/40 shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider">Cảm Xúc Nhận Diện</span>
-              <span className="text-xs font-mono text-emerald-400 font-bold">{biometrics.confidence}% MATCH</span>
+              <div className="flex items-center gap-2 text-xs font-mono text-cyan-400 uppercase tracking-wider">
+                <Users className="w-4 h-4" />
+                <span>Số Lượng Khuôn Mặt</span>
+              </div>
+              <span className="text-xs font-mono text-emerald-400 font-bold">REAL-TIME TELEMETRY</span>
             </div>
 
-            <div className="text-2xl font-bold text-white font-geist mb-3 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" />
-              <span>{biometrics.expression}</span>
-            </div>
-
-            <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
-              <div
-                className="bg-gradient-to-r from-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-300"
-                style={{ width: `${biometrics.confidence}%` }}
-              ></div>
+            <div className="flex items-baseline gap-3">
+              <span className="font-['Silkscreen'] text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
+                {biometrics.faceCount}
+              </span>
+              <span className="text-slate-400 text-sm font-geist">khuôn mặt được phát hiện</span>
             </div>
           </div>
 
-          {/* Biometric Telemetry Matrix */}
+          {/* Individual Person Emotions List */}
           <div className="glass-panel rounded-3xl p-6 border border-slate-700/80 shadow-xl flex flex-col gap-4">
-            <h4 className="text-xs font-mono text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-2">
-              Chỉ Số Tọa Độ Sinh Trắc Học
-            </h4>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-                <span className="text-slate-500 text-[10px] font-mono block">HEAD YAW</span>
-                <span className="text-cyan-300 text-lg font-mono font-bold">{biometrics.yaw}°</span>
-              </div>
-
-              <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-                <span className="text-slate-500 text-[10px] font-mono block">HEAD PITCH</span>
-                <span className="text-cyan-300 text-lg font-mono font-bold">{biometrics.pitch}°</span>
-              </div>
-
-              <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-                <span className="text-slate-500 text-[10px] font-mono block">KHOẢNG CÁCH CAM</span>
-                <span className="text-emerald-300 text-lg font-mono font-bold">{biometrics.distanceCm} cm</span>
-              </div>
-
-              <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
-                <span className="text-slate-500 text-[10px] font-mono block">TẦN SUẤT CHỚP MẮT</span>
-                <span className="text-emerald-300 text-lg font-mono font-bold">{biometrics.blinkCount} /min</span>
-              </div>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h4 className="text-xs font-mono text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <Smile className="w-4 h-4 text-cyan-400" />
+                <span>Cảm Xúc Từng Người</span>
+              </h4>
+              <span className="text-xs font-mono text-slate-500">{biometrics.people.length} Active</span>
             </div>
+
+            {biometrics.people.length > 0 ? (
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                {biometrics.people.map((person) => (
+                  <div key={person.id} className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-cyan-950 border border-cyan-500/40 flex items-center justify-center font-mono text-xs text-cyan-400 font-bold">
+                        #{person.id}
+                      </div>
+                      <div>
+                        <span className="text-sm font-bold text-white font-geist block">{person.expression}</span>
+                        <span className="text-xs text-slate-400 font-mono">Góc quay: Y{person.yaw}° | P{person.pitch}°</span>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-xs font-mono text-emerald-400 font-bold block">{person.confidence}%</span>
+                      <span className="text-[10px] font-mono text-slate-500">{person.distanceCm}cm</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-slate-500 font-mono text-xs">
+                Chưa phát hiện khuôn mặt nào trước ống kính camera.
+              </div>
+            )}
           </div>
 
           {/* Face ID Lock Access Status Card */}
