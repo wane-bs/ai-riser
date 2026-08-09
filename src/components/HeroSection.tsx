@@ -1,5 +1,5 @@
-import React from 'react';
-import { Camera, Sparkles, ArrowRight, ShieldAlert, Cpu, Activity } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera, ChevronDown, Sparkles, ArrowRight, ShieldCheck, Cpu, Activity, Menu, X } from 'lucide-react';
 
 interface HeroSectionProps {
   onStartVisionAi: () => void;
@@ -10,102 +10,190 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onStartVisionAi,
   onExplorePortfolio
 }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (emailInput.trim()) {
+      setSubscribed(true);
+      setTimeout(() => setSubscribed(false), 4000);
+    }
+  };
+
   return (
-    <section className="relative min-h-screen w-full flex flex-col justify-between pt-28 pb-10 px-4 md:px-8 max-w-7xl mx-auto overflow-hidden">
-      {/* Background Animated Glow Spheres */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-600/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
+    <section className="relative h-screen w-full overflow-hidden bg-black text-white font-geist selection:bg-cyan-500 selection:text-black">
+      {/* Background Full-Bleed Video (Exact URL from prompt.md) */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 h-full w-full object-cover"
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260803_192301_9231ed6b-c55c-4a48-909c-4ebe11cf2e11.mp4"
+      />
 
-      {/* Top Banner Tag */}
-      <div className="relative z-10 my-auto pt-6 max-w-3xl">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-xs font-mono mb-6 shadow-lg shadow-cyan-950/40">
-          <Sparkles className="w-4 h-4 text-cyan-400 animate-spin" style={{ animationDuration: '4s' }} />
-          <span>AI-OPS VISION PLATFORM v2.5</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-        </div>
-
-        {/* Main Headline */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-white leading-none font-geist">
-          Mr.Híu <br />
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400">
-            Vision AI & Fullstack
-          </span>
-        </h1>
-
-        <p className="mt-6 text-slate-300 text-lg sm:text-xl font-normal max-w-2xl leading-relaxed">
-          Hệ thống Nhận diện Khuôn mặt Thời gian thực (Real-time Vision AI) tích hợp Hồ sơ Năng lực Lập trình viên. Trải nghiệm quét sinh trắc học và mở khóa Face ID bảo mật ngay trên trình duyệt.
-        </p>
-
-        {/* Action Buttons & CTA Input */}
-        <div className="mt-8 flex flex-wrap items-center gap-4">
-          <button
-            onClick={onStartVisionAi}
-            className="flex items-center gap-3 px-7 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-black font-semibold text-base shadow-xl shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5"
-          >
-            <Camera className="w-5 h-5 text-black" />
-            <span>Mở Vision AI App</span>
-            <ArrowRight className="w-4 h-4 text-black" />
-          </button>
-
-          <button
-            onClick={onExplorePortfolio}
-            className="flex items-center gap-2.5 px-6 py-3.5 rounded-full glass-panel hover:bg-slate-800/80 text-white font-medium text-base border border-slate-700/80 transition-all"
-          >
-            <span>Khám phá Portfolio</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Bottom Anchored Content Grid */}
-      <div className="relative z-10 mt-auto pt-10 grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
-        {/* Left Column Status Card */}
-        <div className="md:col-span-7 glass-panel rounded-2xl p-6 border border-cyan-500/20 shadow-xl backdrop-blur-xl">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono uppercase tracking-wider">
-              <Activity className="w-4 h-4" />
-              <span>System Telemetry</span>
-            </div>
-            <span className="text-emerald-400 text-xs font-mono flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              CLIENT_SIDE_AI_READY
-            </span>
-          </div>
-
-          <p className="text-slate-300 text-sm leading-relaxed font-geist">
-            Xử lý mô hình thị giác máy tính 468 điểm (FaceMesh) trực tiếp tại trình duyệt bằng HTML5 WebGL & WebCam API. 100% On-device privacy.
-          </p>
-
-          <div className="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono text-slate-400">
-            <span>MODEL: MediaPipe FaceMesh</span>
-            <span>LATENCY: ~12ms</span>
-          </div>
-        </div>
-
-        {/* Right Column Glass Stat Cards (Featuring Silkscreen font for 42,500+) */}
-        <div className="md:col-span-5 grid grid-cols-2 gap-4">
-          {/* Card 1: Stat Number "42,500+" ONLY in Silkscreen font */}
-          <div className="glass-panel-glow rounded-2xl p-5 border border-cyan-500/30 flex flex-col justify-between">
-            <div className="text-cyan-400 text-xs font-mono uppercase">Inference Points</div>
-            <div className="my-2">
-              <span className="font-['Silkscreen'] text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 tracking-tight">
-                42,500+
+      {/* Content sits directly over video at z-10 (No dark overlay gradient as specified in prompt.md) */}
+      <div className="relative z-10 flex flex-col h-full justify-between p-4 md:p-8 max-w-7xl mx-auto">
+        {/* Top Navigation Bar */}
+        <header className="pt-2">
+          <nav className="glass-panel-glow rounded-full px-6 py-3.5 flex items-center justify-between border border-white/10 shadow-2xl backdrop-blur-xl bg-white/[0.06]">
+            {/* Brand Logo */}
+            <div className="flex items-center gap-3 cursor-pointer group">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-emerald-400 p-0.5 shadow-lg shadow-cyan-500/30">
+                <div className="w-full h-full bg-black rounded-full flex items-center justify-center">
+                  <Cpu className="w-4 h-4 text-cyan-400 animate-pulse" />
+                </div>
+              </div>
+              <span className="text-xl font-bold tracking-tight text-white font-geist">
+                nexum <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-400 border border-cyan-500/40 font-mono ml-1">AI-OPS</span>
               </span>
             </div>
-            <p className="text-slate-400 text-xs font-geist">Frame Landmarks Processed/min</p>
+
+            {/* Desktop Navigation Links */}
+            <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-200">
+              <a href="#vision-ai-app" onClick={onStartVisionAi} className="hover:text-cyan-400 transition-colors flex items-center gap-1">
+                <span>Vision AI App</span>
+              </a>
+              <a href="#portfolio" onClick={onExplorePortfolio} className="hover:text-cyan-400 transition-colors">
+                <span>Portfolio & Skill</span>
+              </a>
+              <div className="relative group cursor-pointer flex items-center gap-1 hover:text-cyan-400 transition-colors">
+                <span>Giải pháp AI</span>
+                <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-cyan-400 transition-transform group-hover:rotate-180" />
+              </div>
+              <a href="#terminal" className="hover:text-cyan-400 transition-colors">
+                <span>Terminal CLI</span>
+              </a>
+            </div>
+
+            {/* Right Action Button */}
+            <div className="hidden md:flex items-center gap-3">
+              <button
+                onClick={onStartVisionAi}
+                className="flex items-center gap-2 px-5 py-2 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-bold transition-all shadow-md"
+              >
+                <Camera className="w-3.5 h-3.5 text-cyan-400" />
+                <span>LAUNCH VISION AI</span>
+              </button>
+            </div>
+
+            {/* Mobile Menu Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 text-slate-200 hover:text-white rounded-lg"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </nav>
+
+          {/* Mobile Overlay + Slide-in Panel */}
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-2 p-5 glass-panel rounded-3xl border border-white/15 shadow-2xl backdrop-blur-2xl bg-black/80 flex flex-col gap-3">
+              <a
+                href="#vision-ai-app"
+                onClick={() => { onStartVisionAi(); setMobileMenuOpen(false); }}
+                className="py-2.5 px-4 rounded-xl hover:bg-white/10 text-slate-200 text-sm font-medium"
+              >
+                Vision AI App
+              </a>
+              <a
+                href="#portfolio"
+                onClick={() => { onExplorePortfolio(); setMobileMenuOpen(false); }}
+                className="py-2.5 px-4 rounded-xl hover:bg-white/10 text-slate-200 text-sm font-medium"
+              >
+                Portfolio & Skill
+              </a>
+              <a
+                href="#terminal"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2.5 px-4 rounded-xl hover:bg-white/10 text-slate-200 text-sm font-medium"
+              >
+                Terminal CLI
+              </a>
+            </div>
+          )}
+        </header>
+
+        {/* Bottom-Anchored Main Content Container (Exact layout architecture from prompt.md) */}
+        <main className="mt-auto pb-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+          {/* Left Column: Headline + Value Prop + Email CTA */}
+          <div className="lg:col-span-7 flex flex-col justify-end">
+            {/* Tag / Pill Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-cyan-300 text-xs font-mono mb-4 w-max backdrop-blur-md">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-spin" style={{ animationDuration: '4s' }} />
+              <span>NEXUM CINEMATIC AI-OPS PLATFORM</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            </div>
+
+            {/* Main Headline */}
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-white leading-[1.05] font-geist">
+              Chủ Động Vận Hành <br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400">
+                Thị Giác AI & Hồ Sơ
+              </span>
+            </h1>
+
+            <p className="mt-4 text-slate-300 text-base md:text-lg max-w-xl leading-relaxed font-geist">
+              Hệ thống AI-Ops thế hệ mới tích hợp quét sinh trắc học khuôn mặt thời gian thực, đo cảm xúc vi mô và mở khóa hồ sơ kỹ năng của <b>Mr.Híu</b>.
+            </p>
+
+            {/* Email CTA Form (Glassmorphism design) */}
+            <form onSubmit={handleSubscribe} className="mt-6 flex items-center max-w-md">
+              <div className="relative flex-1 glass-panel rounded-full border border-white/20 p-1.5 flex items-center shadow-xl backdrop-blur-xl bg-white/[0.08]">
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="Nhập email của bạn..."
+                  className="w-full bg-transparent px-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none font-geist"
+                  required
+                />
+                <button
+                  type="submit"
+                  className="flex-shrink-0 px-5 py-2.5 rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-black font-semibold text-xs font-geist flex items-center gap-1.5 shadow-lg transition-all"
+                >
+                  <span>{subscribed ? 'Đã gửi ✓' : 'Truy cập AI'}</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-black" />
+                </button>
+              </div>
+            </form>
           </div>
 
-          {/* Card 2: Status & Accuracy */}
-          <div className="glass-panel rounded-2xl p-5 border border-slate-700/80 flex flex-col justify-between">
-            <div className="flex items-center gap-1.5 text-purple-400 text-xs font-mono uppercase">
-              <Cpu className="w-3.5 h-3.5" />
-              <span>Face ID Lock</span>
+          {/* Right Column: Two Glassmorphism Cards */}
+          <div className="lg:col-span-5 grid grid-cols-2 gap-4">
+            {/* Glass Card 1: Stat Number "42,500+" ONLY in Silkscreen font (Strict prompt constraint) */}
+            <div className="glass-panel-glow rounded-3xl p-6 border border-cyan-500/30 backdrop-blur-2xl bg-white/[0.07] flex flex-col justify-between shadow-2xl">
+              <div className="flex items-center justify-between text-cyan-400 text-xs font-mono uppercase tracking-wider">
+                <span>Inference Rate</span>
+                <Activity className="w-4 h-4 text-cyan-400" />
+              </div>
+              <div className="my-3">
+                <span className="font-['Silkscreen'] text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 tracking-tight">
+                  42,500+
+                </span>
+              </div>
+              <p className="text-slate-300 text-xs font-geist leading-snug">
+                Tọa độ Landmark sinh trắc học được xử lý mỗi phút.
+              </p>
             </div>
-            <div className="my-2 text-2xl font-bold text-white font-mono">
-              99.4%
+
+            {/* Glass Card 2: AI Status & Precision Metrics */}
+            <div className="glass-panel rounded-3xl p-6 border border-white/15 backdrop-blur-xl bg-white/[0.05] flex flex-col justify-between shadow-xl">
+              <div className="flex items-center justify-between text-emerald-400 text-xs font-mono uppercase tracking-wider">
+                <span>Precision Score</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="my-3 text-3xl sm:text-4xl font-bold text-white font-mono">
+                99.4%
+              </div>
+              <p className="text-slate-300 text-xs font-geist leading-snug">
+                Độ chính xác nhận diện 8 cảm xúc vi mô trên trình duyệt.
+              </p>
             </div>
-            <p className="text-slate-400 text-xs font-geist">Biometric Verification Precision</p>
           </div>
-        </div>
+        </main>
       </div>
     </section>
   );
