@@ -140,7 +140,7 @@ Mã nguồn sản phẩm sau khi đóng gói sẽ nằm trong thư mục `/dist`
 
 ## 👤 Tác Giả & Bản Quyền (Author & License)
 
-- **Tác giả**: **Mr.Híu** (AI Software Engineer & Fullstack Lead)
+- **Tác giả**: **Nguyễn Trung Hiếu** (Analyst Engineer) -Open for work-
 - **Repository**: [https://github.com/wane-bs/ai-riser](https://github.com/wane-bs/ai-riser)
 - **License**: Phát hành theo giấy phép [MIT License](LICENSE).
 
